@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍺 ビールクレーンゲーム</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --accent: #f5c842;
+    --accent2: #ff6b35;
+    --text: #e8e0d0;
+    --dim: #4a4560;
+    --glow: rgba(245,200,66,0.4);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background: radial-gradient(ellipse at 50% 30%, rgba(245,200,66,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(255,107,53,0.05) 0%, transparent 50%);
+    pointer-events:none;
+  }
+
+  /* ===== START SCREEN ===== */
+  #start-screen {
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    background: var(--bg);
+    z-index:100;
+    gap:24px;
+  }
+
+  #start-screen .big-title {
+    font-family:'Bebas Neue', cursive;
+    font-size:4rem;
+    letter-spacing:6px;
+    color: var(--accent);
+    text-shadow: 0 0 30px var(--glow), 0 0 60px var(--glow);
+    text-align:center;
+  }
+
+  #start-screen .sub {
+    font-size:0.9rem;
+    color:var(--dim);
+    letter-spacing:2px;
+    text-align:center;
+    line-height:1.9;
+  }
+
+  #start-screen .sub b { color:var(--text); }
+
+  #start-btn {
+    margin-top:8px;
+    padding:18px 60px;
+    border: 2px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-family:'Bebas Neue', cursive;
+    font-size:1.6rem;
+    letter-spacing:5px;
+    cursor:pointer;
+    border-radius:4px;
+    transition: all 0.2s;
+    position:relative;
+    overflow:hidden;
+  }
+
+  #start-btn::after {
+    content:'';
+    position:absolute; inset:0;
+    background:var(--accent);
+    opacity:0;
+    transition:opacity 0.2s;
+  }
+
+  #start-btn:hover::after { opacity:0.12; }
+  #start-btn:hover { box-shadow:0 0 30px var(--glow); }
+
+  .beer-deco {
+    font-size:2.5rem;
+    animation: sway 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes sway {
+    from { transform: rotate(-5deg); }
+    to   { transform: rotate(5deg); }
+  }
+
+  /* ===== GAME WRAPPER ===== */
+  #game-wrapper {
+    display:flex; flex-direction:column;
+    align-items:center; gap:14px;
+    z-index:1;
+  }
+
+  #header { text-align:center; }
+
+  #title {
+    font-family:'Bebas Neue', cursive;
+    font-size:2.2rem;
+    letter-spacing:4px;
+    color:var(--accent);
+    text-shadow:0 0 20px var(--glow);
+    margin-bottom: 8px;
+  }
+
+  /* ターゲット表示エリア：缶プレビュー＋テキスト横並び */
+  #target-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(245,200,66,0.2);
+    border-radius: 8px;
+    padding: 6px 18px 6px 8px;
+    min-height: 88px;
+  }
+
+  #previewCanvas {
+    border-radius: 6px;
+    border: 1px solid rgba(245,200,66,0.3);
+    flex-shrink: 0;
+  }
+
+  #target-text {
+    text-align: left;
+  }
+
+  #target-label {
+    font-size: 0.7rem;
+    color: var(--dim);
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+  }
+
+  #target-name {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.8rem;
+    letter-spacing: 3px;
+    color: var(--accent2);
+    text-shadow: 0 0 12px rgba(255,107,53,0.5);
+    line-height: 1;
+  }
+
+  #target-sub {
+    font-size: 0.75rem;
+    color: var(--text);
+    opacity: 0.7;
+    margin-top: 2px;
+    letter-spacing: 1px;
+  }
+
+  #canvas-container {
+    position:relative;
+    border:2px solid #2a2840;
+    box-shadow:0 0 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.5);
+  }
+
+  #gameCanvas { display:block; background:#1a1825; }
+
+  /* result overlay */
+  #overlay {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    pointer-events:none; z-index:10;
+  }
+
+  .result-text {
+    font-family:'Bebas Neue', cursive;
+    font-size:4.5rem;
+    letter-spacing:6px;
+    text-align:center;
+    line-height:1;
+    opacity:0;
+    transform:scale(0.5);
+    transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .result-text.visible { opacity:1; transform:scale(1); }
+  .result-text.clear { color:#4eff91; text-shadow:0 0 30px rgba(78,255,145,0.8); }
+  .result-text.gameover { color:#ff4e4e; text-shadow:0 0 30px rgba(255,78,78,0.8); }
+
+  .result-sub {
+    font-size:0.95rem; letter-spacing:1px; margin-top:8px;
+    opacity:0; transition:opacity 0.4s 0.2s; color:var(--text);
+    text-align:center;
+  }
+  .result-sub.visible { opacity:0.8; }
+
+  /* countdown */
+  #countdown-display {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    pointer-events:none; z-index:5;
+  }
+  #countdown-num {
+    font-family:'Bebas Neue', cursive;
+    font-size:9rem;
+    color:var(--accent);
+    text-shadow:0 0 40px var(--glow);
+    opacity:0; transition:opacity 0.2s; line-height:1;
+  }
+  #countdown-num.show { opacity:1; }
+  #memorize-label {
+    font-size:0.85rem; letter-spacing:3px; color:var(--accent);
+    opacity:0; margin-top:6px; transition:opacity 0.3s;
+  }
+  #memorize-label.show { opacity:0.8; }
+
+  /* controls */
+  #controls {
+    display:flex; flex-direction:column;
+    align-items:center; gap:10px; width:100%;
+  }
+
+  #timer-bar {
+    width:500px; height:6px;
+    background:#1e1c2e; border-radius:3px; overflow:hidden;
+  }
+  #timer-fill {
+    height:100%; width:100%;
+    background:linear-gradient(90deg,var(--accent2),var(--accent));
+    border-radius:3px; transition:width 0.1s linear;
+    box-shadow:0 0 8px var(--glow);
+  }
+
+  #timer-label {
+    font-size:0.8rem; color:var(--dim);
+    letter-spacing:2px; min-height:1.2em; text-align:center;
+  }
+
+  #buttons { display:flex; gap:16px; }
+
+  .ctrl-btn {
+    width:130px; height:56px;
+    border:2px solid #2a2840;
+    background:#12121a;
+    color:var(--text);
+    font-family:'Bebas Neue', cursive;
+    font-size:1.15rem; letter-spacing:3px;
+    cursor:pointer; border-radius:4px;
+    position:relative; overflow:hidden;
+    transition:all 0.15s;
+    user-select:none; -webkit-user-select:none;
+  }
+  .ctrl-btn::before {
+    content:''; position:absolute; inset:0;
+    background:var(--accent); opacity:0; transition:opacity 0.15s;
+  }
+  .ctrl-btn.used {
+    opacity:0.35; cursor:default;
+    border-color:#333;
+  }
+  .ctrl-btn.flash::before { opacity:0.25; }
+  .ctrl-btn .btn-icon { display:block; font-size:1.3rem; }
+
+  #retry-btn {
+    display:none;
+    padding:13px 38px;
+    border:2px solid var(--accent);
+    background:transparent;
+    color:var(--accent);
+    font-family:'Bebas Neue', cursive;
+    font-size:1.2rem; letter-spacing:4px;
+    cursor:pointer; border-radius:4px;
+    transition:all 0.2s;
+    position:relative; z-index:20;
+    pointer-events:all;
+  }
+  #retry-btn:hover { background:var(--accent); color:var(--bg); box-shadow:0 0 20px var(--glow); }
+</style>
+</head>
+<body>
+
+<!-- ========== スタート画面 ========== -->
+<div id="start-screen">
+  <div class="beer-deco">🍺</div>
+  <div class="big-title">BEER CRANE</div>
+  <div class="sub">
+    <b>ルール</b><br>
+    記憶タイム（3秒）でビールの位置を覚えよう！<br>
+    暗転後、<b>RIGHT</b> と <b>UP</b> は<b>それぞれ1回ずつ</b>しか使えない<br>
+    押している間だけクレーンが移動、離すと停止<br>
+    両ボタン使用後 → 自動でクレーン降下！<br>
+    30秒以内に操作しないと強制降下！
+  </div>
+  <button id="start-btn">▶ GAME START</button>
+</div>
+
+<!-- ========== ゲーム画面 ========== -->
+<div id="game-wrapper">
+  <div id="header">
+    <div id="title">🍺 BEER CRANE</div>
+    <div id="target-display">
+      <canvas id="previewCanvas" width="80" height="80"></canvas>
+      <div id="target-text">
+        <div id="target-label">🎯 ターゲット</div>
+        <div id="target-name"></div>
+        <div id="target-sub">をつかめ！</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+    <div id="countdown-display">
+      <div id="countdown-num"></div>
+      <div id="memorize-label">記憶タイム！</div>
+    </div>
+    <div id="overlay">
+      <div class="result-text" id="result-text"></div>
+      <div class="result-sub" id="result-sub"></div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <div id="timer-bar"><div id="timer-fill"></div></div>
+    <div id="timer-label"></div>
+    <div id="buttons">
+      <button class="ctrl-btn" id="btn-right"><span class="btn-icon">→</span> RIGHT</button>
+      <button class="ctrl-btn" id="btn-up"><span class="btn-icon">↑</span> UP</button>
+    </div>
+    <button id="retry-btn">🔄 もう一度遊ぶ</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// ビール銘柄定義（10種類）
+// 各銘柄に缶の色・ラベル色・ブランド名・略称・国旗絵文字を設定
+// ============================================================
+const BRANDS = [
+  { name: 'Heineken',    short: 'HEINEKEN',   body: '#1a6b2a', label: '#22882f', text: '#fff',    stripe: '#15551f', flag: '🟢' },
+  { name: 'Asahi',       short: 'ASAHI',      body: '#1c3a6e', label: '#1a4a8a', text: '#fff',    stripe: '#152d58', flag: '🔵' },
+  { name: 'Sapporo',     short: 'SAPPORO',    body: '#1e1e1e', label: '#2a2a2a', text: '#c8a820', stripe: '#111',    flag: '⭐' },
+  { name: 'Guinness',    short: 'GUINNESS',   body: '#0f0f0f', label: '#1a1a1a', text: '#e8c840', stripe: '#050505', flag: '🖤' },
+  { name: 'Corona',      short: 'CORONA',     body: '#d4a820', label: '#e8c030', text: '#1a3a10', stripe: '#b89018', flag: '👑' },
+  { name: 'Budweiser',   short: 'BUD',        body: '#b01818', label: '#cc1c1c', text: '#fff',    stripe: '#8c1010', flag: '🦅' },
+  { name: 'Yebisu',      short: 'YEBISU',     body: '#2c1a5a', label: '#3a2470', text: '#e8c040', stripe: '#20123e', flag: '💜' },
+  { name: 'Kirin',       short: 'KIRIN',      body: '#1a4060', label: '#205080', text: '#fff',    stripe: '#122e46', flag: '🦁' },
+  { name: 'Stella',      short: 'STELLA',     body: '#c8a008', label: '#dab010', text: '#1a1a1a', stripe: '#a88000', flag: '⭐' },
+  { name: 'Orion',       short: 'ORION',      body: '#c04010', label: '#d85018', text: '#fff',    stripe: '#9c3008', flag: '🌺' },
+];
+
+const CANVAS_W = 500;
+const CANVAS_H = 500;
+const BEER_W = 22;      // 缶の幅（半分）※缶を大きくして銘柄名を見やすく
+const BEER_H = 34;      // 缶の高さ（半分）
+const HIT_R  = 32;      // 当たり判定半径
+const CRANE_R = 18;     // クレーン判定半径
+const CRANE_SPEED = 110;
+const MEMORIZE_TIME = 3;
+const OPERATION_LIMIT = 30;
+const BEER_COUNT = 10;  // 缶が大きくなったので少し減らして重なりを防ぐ
+const MARGIN = 55;
+
+// DOM
+const canvas       = document.getElementById('gameCanvas');
+const ctx          = canvas.getContext('2d');
+const targetDisp   = document.getElementById('target-display');
+const timerLabel   = document.getElementById('timer-label');
+const timerFill    = document.getElementById('timer-fill');
+const resultText   = document.getElementById('result-text');
+const resultSub    = document.getElementById('result-sub');
+const retryBtn     = document.getElementById('retry-btn');
+const btnRight     = document.getElementById('btn-right');
+const btnUp        = document.getElementById('btn-up');
+const countdownNum = document.getElementById('countdown-num');
+const memorizeLabel= document.getElementById('memorize-label');
+const startScreen  = document.getElementById('start-screen');
+
+let beers = [];
+let targetBrand = null;
+let crane = { x:50, y:450 };
+
+// gameState: 'start' | 'memorize' | 'dark' | 'grabbing' | 'result'
+let gameState = 'start';
+
+let memorizeTimer = MEMORIZE_TIME;
+let opTimer = OPERATION_LIMIT;
+let opStarted = false;
+let lastTime = null;
+let animId = null;
+let countdownVal = MEMORIZE_TIME;
+
+// ボタンの使用済みフラグ（1回しか押せない）
+let rightUsed = false;
+let upUsed    = false;
+let rightActive = false; // 現在押下中か
+let upActive    = false;
+
+// ============================================================
+// ビールをランダム配置（重なり防止）
+// ============================================================
+function generateBeers() {
+  beers = [];
+  const positions = [];
+  // 銘柄をシャッフルして確実に全種類含める
+  const shuffled = [...BRANDS].sort(() => Math.random() - 0.5);
+
+  for (let i = 0; i < BEER_COUNT; i++) {
+    let pos, attempts = 0;
+    do {
+      pos = {
+        x: MARGIN + Math.random() * (CANVAS_W - MARGIN * 2),
+        y: MARGIN + Math.random() * (CANVAS_H - MARGIN * 2),
+      };
+      attempts++;
+    } while (
+      attempts < 80 &&
+      positions.some(p => Math.hypot(p.x - pos.x, p.y - pos.y) < 65)
+    );
+    positions.push(pos);
+    beers.push({ ...pos, brand: shuffled[i % shuffled.length] });
+  }
+}
+
+// ============================================================
+// ターゲット銘柄をランダム選択
+// ターゲット銘柄が必ず1本以上フィールドに存在するよう保証
+// ============================================================
+function pickTarget() {
+  // 配置済み銘柄の中からランダムに選ぶ
+  const placed = [...new Set(beers.map(b => b.brand))];
+  targetBrand = placed[Math.floor(Math.random() * placed.length)];
+  // テキスト部分のみ更新（缶イラストはcanvasで別途描画）
+  document.getElementById('target-name').textContent = targetBrand.name;
+  // プレビューキャンバスに缶イラストを描画
+  drawBeerPreview(targetBrand);
+}
+
+// 実際の描画：brand オブジェクトを直接受け取る汎用関数
+function _drawCan(c, brand, cx, cy, scale, alpha) {
+  const bw = BEER_W * scale;
+  const bh = BEER_H * scale;
+
+  c.save();
+  c.globalAlpha = alpha;
+  c.translate(cx, cy);
+
+  // --- 缶本体 ---
+  const grad = c.createLinearGradient(-bw, 0, bw, 0);
+  grad.addColorStop(0,    brand.stripe);
+  grad.addColorStop(0.28, brand.body);
+  grad.addColorStop(0.72, brand.body);
+  grad.addColorStop(1,    brand.stripe);
+
+  roundRect(c, -bw, -bh, bw*2, bh*2, 5*scale);
+  c.fillStyle = grad;
+  c.fill();
+
+  // --- ラベル帯（中央） ---
+  const labelGrad = c.createLinearGradient(-bw, 0, bw, 0);
+  labelGrad.addColorStop(0,    brand.stripe);
+  labelGrad.addColorStop(0.22, brand.label);
+  labelGrad.addColorStop(0.78, brand.label);
+  labelGrad.addColorStop(1,    brand.stripe);
+
+  roundRect(c, -bw+2*scale, -bh*0.42, (bw-2*scale)*2, bh*0.84, 3*scale);
+  c.fillStyle = labelGrad;
+  c.fill();
+
+  // --- ブランド名テキスト（大きく読みやすく）---
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+
+  // テキストに影をつけて視認性UP
+  c.shadowColor = 'rgba(0,0,0,0.7)';
+  c.shadowBlur = 3 * scale;
+
+  // 銘柄名：文字数に応じてフォントサイズ調整
+  const nameLen = brand.short.length;
+  const nameFontSize = nameLen <= 3 ? 13 * scale
+                     : nameLen <= 5 ? 11 * scale
+                     : nameLen <= 7 ? 9.5 * scale
+                     :                8 * scale;
+  c.font = `900 ${nameFontSize}px 'Bebas Neue', 'Arial Black', sans-serif`;
+  c.fillStyle = brand.text;
+  c.fillText(brand.short, 0, -bh * 0.1);
+
+  // アイコン絵文字（小さめ）
+  c.shadowBlur = 0;
+  c.font = `${9 * scale}px serif`;
+  c.fillText(brand.flag, 0, bh * 0.28);
+
+  c.shadowBlur = 0;
+
+  // --- 上蓋・下蓋 ---
+  c.fillStyle = lighten(brand.body, 0.3);
+  c.beginPath();
+  c.ellipse(0, -bh, bw*0.88, bh*0.14, 0, 0, Math.PI*2);
+  c.fill();
+
+  c.fillStyle = darken(brand.body, 0.25);
+  c.beginPath();
+  c.ellipse(0, bh, bw*0.88, bh*0.14, 0, 0, Math.PI*2);
+  c.fill();
+
+  // --- プルタブ ---
+  c.fillStyle = '#bbb';
+  c.beginPath();
+  c.ellipse(2*scale, -bh+3*scale, 4*scale, 2.5*scale, 0, 0, Math.PI*2);
+  c.fill();
+
+  // --- 輪郭線 ---
+  roundRect(c, -bw, -bh, bw*2, bh*2, 5*scale);
+  c.strokeStyle = 'rgba(0,0,0,0.45)';
+  c.lineWidth = 1.2*scale;
+  c.stroke();
+
+  c.restore();
+}
+
+// ゲームフィールド上の缶描画（scale=1）
+function drawBeer(b, alpha = 1) {
+  _drawCan(ctx, b.brand, b.x, b.y, 1, alpha);
+}
+
+// ============================================================
+// ターゲット用プレビューキャンバスへの缶描画（拡大スケール）
+// ============================================================
+function drawBeerPreview(brand) {
+  const pc = document.getElementById('previewCanvas');
+  if (!pc) return;
+  const pctx = pc.getContext('2d');
+  const pw = pc.width, ph = pc.height;
+  pctx.clearRect(0, 0, pw, ph);
+
+  // 背景
+  pctx.fillStyle = '#12111e';
+  pctx.fillRect(0, 0, pw, ph);
+
+  // 装飾リング
+  pctx.save();
+  pctx.beginPath();
+  pctx.arc(pw/2, ph/2, 32, 0, Math.PI*2);
+  pctx.strokeStyle = 'rgba(245,200,66,0.25)';
+  pctx.lineWidth = 2;
+  pctx.stroke();
+  pctx.restore();
+
+  // 缶を大きめスケールで中央に描画
+  _drawCan(pctx, brand, pw/2, ph/2, 2.0, 1);
+}
+
+// 丸角矩形ヘルパー
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+// 色を明るくするユーティリティ
+function lighten(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, (n>>16) + Math.round(amt*128));
+  const g = Math.min(255, ((n>>8)&0xff) + Math.round(amt*128));
+  const b = Math.min(255, (n&0xff) + Math.round(amt*128));
+  return `rgb(${r},${g},${b})`;
+}
+
+// 色を暗くするユーティリティ
+function darken(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, (n>>16) - Math.round(amt*128));
+  const g = Math.max(0, ((n>>8)&0xff) - Math.round(amt*128));
+  const b = Math.max(0, (n&0xff) - Math.round(amt*128));
+  return `rgb(${r},${g},${b})`;
+}
+
+// ============================================================
+// クレーンを描画（暗闇でも視認できるよう発光）
+// ============================================================
+function drawCrane() {
+  const { x, y } = crane;
+  ctx.save();
+  ctx.shadowBlur = 24;
+  ctx.shadowColor = 'rgba(245,200,66,0.8)';
+
+  ctx.strokeStyle = '#f5c842';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x-22, y); ctx.lineTo(x+22, y);
+  ctx.moveTo(x, y-22); ctx.lineTo(x, y+22);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x, y, CRANE_R, 0, Math.PI*2);
+  ctx.strokeStyle = '#f5c842';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x, y, 4, 0, Math.PI*2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// グリッド描画
+function drawGrid(alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.12;
+  ctx.strokeStyle = '#6060a0';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= CANVAS_W; x+=50) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,CANVAS_H); ctx.stroke();
+  }
+  for (let y = 0; y <= CANVAS_H; y+=50) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(CANVAS_W,y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ============================================================
+// メイン描画処理
+// ============================================================
+function draw() {
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+  if (gameState === 'memorize') {
+    ctx.fillStyle = '#1a1825';
+    ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+    drawGrid(1);
+    beers.forEach(b => drawBeer(b, 1));
+    drawCrane();
+
+  } else if (gameState === 'dark' || gameState === 'grabbing') {
+    // 暗転：ビールは見えない、クレーンのみ表示
+    ctx.fillStyle = '#050408';
+    ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+    drawGrid(0.3);
+    drawCrane();
+
+  } else if (gameState === 'result') {
+    ctx.fillStyle = '#0d0c14';
+    ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+    drawGrid(0.5);
+    beers.forEach(b => drawBeer(b, 0.5));
+    // ターゲット銘柄を強調表示
+    beers.filter(b => b.brand === targetBrand).forEach(b => {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, HIT_R+8, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(78,255,145,0.7)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.restore();
+      drawBeer(b, 1);
+    });
+    drawCrane();
+  }
+}
+
+// タイマーバー更新
+function updateTimerBar(ratio) {
+  timerFill.style.width = (ratio*100) + '%';
+  const hue = ratio * 60;
+  timerFill.style.background = `linear-gradient(90deg, hsl(${hue},90%,50%), hsl(${hue+30},90%,60%))`;
+}
+
+// カウントダウン表示
+function showCountdown(n) {
+  countdownNum.textContent = n;
+  countdownNum.classList.add('show');
+  memorizeLabel.classList.add('show');
+  setTimeout(() => countdownNum.classList.remove('show'), 700);
+}
+
+// ============================================================
+// ゲームループ（requestAnimationFrame）
+// ============================================================
+function gameLoop(ts) {
+  if (!lastTime) lastTime = ts;
+  const dt = Math.min((ts - lastTime) / 1000, 0.1);
+  lastTime = ts;
+
+  if (gameState === 'memorize') {
+    memorizeTimer -= dt;
+    const sec = Math.ceil(memorizeTimer);
+    if (sec !== countdownVal) {
+      countdownVal = sec;
+      if (sec >= 1) showCountdown(sec);
+    }
+    timerLabel.textContent = `記憶タイム: ${Math.max(0, memorizeTimer).toFixed(1)}s`;
+    updateTimerBar(memorizeTimer / MEMORIZE_TIME);
+
+    if (memorizeTimer <= 0) {
+      // 暗転フェーズへ
+      countdownNum.classList.remove('show');
+      memorizeLabel.classList.remove('show');
+      gameState = 'dark';
+      timerLabel.textContent = '暗転！RIGHT か UP を押せ（各1回）';
+      updateTimerBar(1);
+    }
+
+  } else if (gameState === 'dark') {
+    // RIGHT・UPそれぞれ押している間だけ移動（各1回限り）
+    if (rightActive && crane.x < CANVAS_W - 20) {
+      crane.x += CRANE_SPEED * dt;
+    }
+    if (upActive && crane.y > 20) {
+      crane.y -= CRANE_SPEED * dt;
+    }
+
+    // 最初の操作でタイマースタート
+    if ((rightActive || upActive) && !opStarted) {
+      opStarted = true;
+    }
+
+    if (opStarted) {
+      opTimer -= dt;
+      timerLabel.textContent = `残り操作時間: ${Math.max(0, opTimer).toFixed(1)}s`;
+      updateTimerBar(opTimer / OPERATION_LIMIT);
+
+      if (opTimer <= 0) {
+        // 制限時間切れ → 強制降下
+        startGrab();
+        return;
+      }
+    }
+
+    // 両ボタンを使い終わったら自動降下
+    if (rightUsed && upUsed && !rightActive && !upActive) {
+      startGrab();
+      return;
+    }
+
+  } else if (gameState === 'grabbing') {
+    // 降下アニメーション中（startGrab内のsetTimeoutで処理）
+  }
+
+  draw();
+  animId = requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+// 掴みアクション開始
+// ============================================================
+function startGrab() {
+  gameState = 'grabbing';
+  rightActive = upActive = false;
+  timerLabel.textContent = 'クレーン降下中...🪝';
+  updateTimerBar(0);
+
+  setTimeout(() => {
+    judgeResult();
+  }, 700);
+}
+
+// ============================================================
+// 判定処理：クレーン位置とターゲットビールの距離で判定
+// ============================================================
+function judgeResult() {
+  gameState = 'result';
+  cancelAnimationFrame(animId);
+  draw();
+
+  const hit = beers.some(b => {
+    if (b.brand !== targetBrand) return false;
+    return Math.hypot(crane.x - b.x, crane.y - b.y) < (CRANE_R + HIT_R);
+  });
+
+  if (hit) {
+    resultText.textContent = 'CLEAR!';
+    resultText.className = 'result-text clear';
+    resultSub.textContent = `${targetBrand.name} をゲット！🍺 おめでとう！`;
+  } else {
+    resultText.textContent = 'MISS...';
+    resultText.className = 'result-text gameover';
+    resultSub.textContent = `惜しい！${targetBrand.name} には届かなかった…`;
+  }
+
+  setTimeout(() => {
+    resultText.classList.add('visible');
+    resultSub.classList.add('visible');
+  }, 100);
+
+  retryBtn.style.display = 'block';
+  timerLabel.textContent = '';
+}
+
+// ============================================================
+// ゲーム初期化
+// ============================================================
+function initGame() {
+  cancelAnimationFrame(animId);
+  lastTime = null;
+
+  crane = { x:50, y:450 };
+  gameState = 'memorize';
+  memorizeTimer = MEMORIZE_TIME;
+  opTimer = OPERATION_LIMIT;
+  opStarted = false;
+  countdownVal = MEMORIZE_TIME;
+
+  // ボタン使用状態をリセット
+  rightUsed = false;
+  upUsed    = false;
+  rightActive = false;
+  upActive    = false;
+  btnRight.classList.remove('used', 'flash');
+  btnUp.classList.remove('used', 'flash');
+
+  resultText.className = 'result-text';
+  resultSub.className  = 'result-sub';
+  resultText.textContent = '';
+  resultSub.textContent  = '';
+  retryBtn.style.display = 'none';
+  timerLabel.textContent = `記憶タイム: ${MEMORIZE_TIME}s`;
+  updateTimerBar(1);
+
+  countdownNum.textContent = MEMORIZE_TIME;
+  countdownNum.classList.add('show');
+  memorizeLabel.classList.add('show');
+
+  generateBeers();
+  pickTarget();
+
+  animId = requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+// RIGHT ボタン操作（1回限り：押している間移動、離したら終わり）
+// ============================================================
+function pressRight() {
+  if (gameState !== 'dark') return;
+  if (rightUsed) return; // 使用済みなら無効
+  rightUsed = true;
+  rightActive = true;
+  btnRight.classList.add('flash');
+}
+
+function releaseRight() {
+  if (!rightActive) return;
+  rightActive = false;
+  btnRight.classList.remove('flash');
+  btnRight.classList.add('used');
+}
+
+// ============================================================
+// UP ボタン操作（1回限り：押している間移動、離したら終わり）
+// ============================================================
+function pressUp() {
+  if (gameState !== 'dark') return;
+  if (upUsed) return;
+  upUsed = true;
+  upActive = true;
+  btnUp.classList.add('flash');
+}
+
+function releaseUp() {
+  if (!upActive) return;
+  upActive = false;
+  btnUp.classList.remove('flash');
+  btnUp.classList.add('used');
+}
+
+// マウスイベント
+btnRight.addEventListener('mousedown',  pressRight);
+btnRight.addEventListener('mouseup',    releaseRight);
+btnRight.addEventListener('mouseleave', releaseRight);
+btnUp.addEventListener('mousedown',     pressUp);
+btnUp.addEventListener('mouseup',       releaseUp);
+btnUp.addEventListener('mouseleave',    releaseUp);
+
+// タッチイベント
+btnRight.addEventListener('touchstart', e => { e.preventDefault(); pressRight(); });
+btnRight.addEventListener('touchend',   e => { e.preventDefault(); releaseRight(); });
+btnUp.addEventListener('touchstart',    e => { e.preventDefault(); pressUp(); });
+btnUp.addEventListener('touchend',      e => { e.preventDefault(); releaseUp(); });
+
+// キーボード操作（→ / ↑）
+document.addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if (e.key === 'ArrowRight' || e.key === 'd') pressRight();
+  if (e.key === 'ArrowUp'    || e.key === 'w') pressUp();
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowRight' || e.key === 'd') releaseRight();
+  if (e.key === 'ArrowUp'    || e.key === 'w') releaseUp();
+});
+
+retryBtn.addEventListener('click', initGame);
+
+// ============================================================
+// スタートボタン → ゲーム開始
+// ============================================================
+document.getElementById('start-btn').addEventListener('click', () => {
+  startScreen.style.transition = 'opacity 0.4s';
+  startScreen.style.opacity = '0';
+  setTimeout(() => {
+    startScreen.style.display = 'none';
+    initGame();
+  }, 400);
+});
+</script>
+</body>
+</html>
