@@ -7,6 +7,7 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap');
 
+  /* 色の定義（CSS変数）。ここを変えるとゲーム全体の配色が変わる */
   :root {
     --bg: #0a0a0f;
     --accent: #f5c842;
@@ -16,8 +17,10 @@
     --glow: rgba(245,200,66,0.4);
   }
 
+  /* 全要素の余白をリセット。スマホでタップした時の灰色ハイライトも無効化 */
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
 
+  /* 画面全体を暗い背景で固定。スクロールやピンチ操作を無効化（touch-action:none） */
   html, body {
     width:100%; height:100%;
     background: var(--bg);
@@ -27,6 +30,7 @@
     touch-action: none;
   }
 
+  /* 背景にうっすら光るグラデーションの装飾。pointer-events:noneなので操作の邪魔はしない */
   body::before {
     content:'';
     position:fixed; inset:0;
@@ -36,6 +40,7 @@
   }
 
   /* ===== START SCREEN ===== */
+  /* スタート画面：画面全体を覆う（z-index:100で最前面）。GAME START後にJSで非表示にする */
   #start-screen {
     position:fixed; inset:0;
     display:flex; flex-direction:column;
@@ -46,6 +51,7 @@
     padding: 20px;
   }
 
+  /* スタート画面の大見出し「BEER CRANE」 */
   #start-screen .big-title {
     font-family:'Bebas Neue', cursive;
     font-size: clamp(2.4rem, 12vw, 4rem);
@@ -55,6 +61,7 @@
     text-align:center;
   }
 
+  /* スタート画面のルール説明文 */
   #start-screen .sub {
     font-size: clamp(0.72rem, 3.2vw, 0.9rem);
     color:var(--dim);
@@ -65,6 +72,7 @@
 
   #start-screen .sub b { color:var(--text); }
 
+  /* 「GAME START」ボタン */
   #start-btn {
     padding: clamp(14px,4vw,18px) clamp(36px,10vw,60px);
     border: 2px solid var(--accent);
@@ -81,17 +89,20 @@
 
   #start-btn:active { background: rgba(245,200,66,0.15); box-shadow:0 0 30px var(--glow); }
 
+  /* スタート画面の🍺絵文字。下のswayアニメーションで左右に揺らす */
   .beer-deco {
     font-size: clamp(1.8rem, 7vw, 2.5rem);
     animation: sway 2s ease-in-out infinite alternate;
   }
 
+  /* -5度と+5度の間を往復する揺れアニメーション */
   @keyframes sway {
     from { transform: rotate(-5deg); }
     to   { transform: rotate(5deg); }
   }
 
   /* ===== GAME WRAPPER ===== */
+  /* ゲーム画面全体を包む枠。縦に「ヘッダー → Canvas → 操作パネル」と並べる */
   #game-wrapper {
     position: relative; z-index:1;
     width:100%; height:100%;
@@ -135,6 +146,7 @@
     max-width: 500px;
   }
 
+  /* ターゲットの缶を描く見本用Canvas（実際のサイズはJSのresizeCanvasで決定） */
   #previewCanvas {
     border-radius: 5px;
     border: 1px solid rgba(245,200,66,0.3);
@@ -144,11 +156,13 @@
 
   #target-text { text-align: left; }
 
+  /* 「ターゲット」の小さな見出し */
   #target-label {
     font-size: clamp(0.6rem, 2.5vw, 0.7rem);
     color: var(--dim); letter-spacing: 2px; margin-bottom: 1px;
   }
 
+  /* ターゲット銘柄名の表示（文字はJSのpickTargetで入れる）。オレンジで強調 */
   #target-name {
     font-family: 'Bebas Neue', cursive;
     font-size: clamp(1.3rem, 5.5vw, 1.8rem);
@@ -158,12 +172,14 @@
     line-height: 1;
   }
 
+  /* 「をつかめ！」の補足文 */
   #target-sub {
     font-size: clamp(0.65rem, 2.5vw, 0.75rem);
     color: var(--text); opacity: 0.7; margin-top: 2px; letter-spacing: 1px;
   }
 
   /* Canvas コンテナ */
+  /* ゲームCanvasの入れ物。position:relativeにして、上にカウントダウンや結果表示を重ねる基準にする */
   #canvas-container {
     position:relative;
     border:2px solid #2a2840;
@@ -171,9 +187,11 @@
     flex-shrink:0;
   }
 
+  /* ゲーム本体の描画領域（サイズはJSで設定） */
   #gameCanvas { display:block; background:#1a1825; }
 
   /* result overlay */
+  /* 結果表示（CLEAR! / MISS...）をCanvas全面に重ねる層。pointer-events:noneで下の操作を邪魔しない */
   #overlay {
     position:absolute; inset:0;
     display:flex; flex-direction:column;
@@ -181,6 +199,7 @@
     pointer-events:none; z-index:10;
   }
 
+  /* 結果の大きな文字。初期状態は透明＆縮小で、.visibleが付くと拡大しながら表示される */
   .result-text {
     font-family:'Bebas Neue', cursive;
     font-size: clamp(3rem, 14vw, 4.5rem);
@@ -189,9 +208,11 @@
     transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
   }
   .result-text.visible { opacity:1; transform:scale(1); }
+  /* 成功時は緑、失敗時は赤 */
   .result-text.clear    { color:#4eff91; text-shadow:0 0 30px rgba(78,255,145,0.8); }
   .result-text.gameover { color:#ff4e4e; text-shadow:0 0 30px rgba(255,78,78,0.8); }
 
+  /* 結果の補足文（「〇〇をゲット！」など）。少し遅れてフェードインする */
   .result-sub {
     font-size: clamp(0.75rem, 3vw, 0.95rem);
     letter-spacing:1px; margin-top:8px;
@@ -201,12 +222,14 @@
   .result-sub.visible { opacity:0.8; }
 
   /* countdown */
+  /* 記憶タイム中のカウントダウン（3,2,1）を中央に重ねる層 */
   #countdown-display {
     position:absolute; inset:0;
     display:flex; flex-direction:column;
     align-items:center; justify-content:center;
     pointer-events:none; z-index:5;
   }
+  /* カウントダウンの数字。.showが付くと表示される */
   #countdown-num {
     font-family:'Bebas Neue', cursive;
     font-size: clamp(5rem, 22vw, 9rem);
@@ -214,6 +237,7 @@
     opacity:0; transition:opacity 0.2s; line-height:1;
   }
   #countdown-num.show { opacity:1; }
+  /* 「記憶タイム！」のラベル。.showが付くと表示される */
   #memorize-label {
     font-size: clamp(0.7rem, 3vw, 0.85rem);
     letter-spacing:3px; color:var(--accent);
@@ -222,6 +246,7 @@
   #memorize-label.show { opacity:0.8; }
 
   /* ===== CONTROLS ===== */
+  /* 下部の操作パネル。スマホのホームバー分の余白（safe-area）も確保 */
   #controls {
     width:100%; max-width:500px;
     display:flex; flex-direction:column;
@@ -231,10 +256,12 @@
     padding-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
+  /* 残り時間バーの外枠 */
   #timer-bar {
     width:100%; height:5px;
     background:#1e1c2e; border-radius:3px; overflow:hidden;
   }
+  /* 残り時間バー本体。幅(width)と色はJSのupdateTimerBarで更新される */
   #timer-fill {
     height:100%; width:100%;
     background:linear-gradient(90deg,var(--accent2),var(--accent));
@@ -242,11 +269,13 @@
     box-shadow:0 0 8px var(--glow);
   }
 
+  /* バーの下に出る状態テキスト（例：「記憶タイム: 2.3s」） */
   #timer-label {
     font-size: clamp(0.65rem, 2.8vw, 0.8rem);
     color:var(--dim); letter-spacing:1px; min-height:1.2em; text-align:center;
   }
 
+  /* RIGHT / UP ボタンを横並びにする */
   #buttons { display:flex; gap:12px; width:100%; }
 
   /* SP向け：ボタンを大きく、押しやすく */
@@ -265,18 +294,22 @@
     user-select:none; -webkit-user-select:none;
     display:flex; align-items:center; justify-content:center; gap:6px;
   }
+  /* ボタン全面に重ねる黄色の膜。.flash時に透明度を上げて光らせる */
   .ctrl-btn::before {
     content:''; position:absolute; inset:0;
     background:var(--accent); opacity:0; transition:opacity 0.12s;
   }
+  /* 使用済み（1回押した）ボタンは薄く表示して、もう押せないことを示す */
   .ctrl-btn.used {
     opacity:0.3; cursor:default; border-color:#333;
   }
+  /* 押している間（クレーン移動中）に光らせる演出 */
   .ctrl-btn.flash { border-color:var(--accent); box-shadow:0 0 14px var(--glow); }
   .ctrl-btn.flash::before { opacity:0.2; }
   .btn-icon { font-size: clamp(1.1rem, 5vw, 1.5rem); position:relative; z-index:1; }
   .btn-label { position:relative; z-index:1; }
 
+  /* 「もう一度遊ぶ」ボタン。普段は非表示で、結果表示時にJSがdisplay:blockにして出す */
   #retry-btn {
     display:none;
     width:100%;
@@ -309,38 +342,49 @@
     両ボタン使用後 → 自動でクレーン降下！<br>
     30秒以内に操作しないと強制降下！
   </div>
+  <!-- 押すとスタート画面がフェードアウトし、initGame()でゲーム開始 -->
   <button id="start-btn">▶ GAME START</button>
 </div>
 
 <!-- ========== ゲーム画面 ========== -->
 <div id="game-wrapper">
+  <!-- ヘッダー：ゲームタイトルと、今回のターゲット表示 -->
   <div id="header">
     <div id="title">🍺 BEER CRANE</div>
     <div id="target-display">
+      <!-- ターゲット缶の見本（drawBeerPreviewで描画） -->
       <canvas id="previewCanvas" width="70" height="70"></canvas>
       <div id="target-text">
         <div id="target-label">🎯 ターゲット</div>
+        <!-- ターゲット銘柄名（JSのpickTargetで文字が入る） -->
         <div id="target-name"></div>
         <div id="target-sub">をつかめ！</div>
       </div>
     </div>
   </div>
 
+  <!-- ゲーム本体エリア。Canvasの上にカウントダウンと結果表示を重ねている -->
   <div id="canvas-container">
+    <!-- ゲーム本体のCanvas（ビール缶とクレーンを描画する） -->
     <canvas id="gameCanvas"></canvas>
+    <!-- 記憶タイム中のカウントダウン表示 -->
     <div id="countdown-display">
       <div id="countdown-num"></div>
       <div id="memorize-label">記憶タイム！</div>
     </div>
+    <!-- 結果表示（CLEAR! / MISS...） -->
     <div id="overlay">
       <div class="result-text" id="result-text"></div>
       <div class="result-sub" id="result-sub"></div>
     </div>
   </div>
 
+  <!-- 操作パネル：残り時間バー、状態テキスト、RIGHT/UPボタン、リトライボタン -->
   <div id="controls">
+    <!-- 残り時間バー（幅と色はJSで変化） -->
     <div id="timer-bar"><div id="timer-fill"></div></div>
     <div id="timer-label"></div>
+    <!-- RIGHT：押している間クレーンが右へ移動 / UP：押している間クレーンが上へ移動（どちらも1回限り） -->
     <div id="buttons">
       <button class="ctrl-btn" id="btn-right">
         <span class="btn-icon">→</span><span class="btn-label">RIGHT</span>
@@ -349,14 +393,26 @@
         <span class="btn-icon">↑</span><span class="btn-label">UP</span>
       </button>
     </div>
+    <!-- 結果表示後に出現。クリックでinitGame()を呼んでやり直し -->
     <button id="retry-btn">🔄 もう一度遊ぶ</button>
   </div>
 </div>
 
 <script>
+// 【ゲーム全体の流れ】
+// 1. GAME STARTボタン → initGame() でゲーム開始
+// 2. memorize（記憶タイム3秒）: ビールがすべて見える
+// 3. dark（暗転）: 缶が消える。RIGHT/UPボタンでクレーンを動かす（各1回のみ）
+// 4. grabbing（降下中）: 0.7秒の演出のあと判定へ
+// 5. result（結果）: 当たり判定してCLEAR/MISSを表示 → 「もう一度遊ぶ」で2.へ戻る
+// 変数gameStateがこの状態を管理し、gameLoop()が毎フレーム状態に応じた処理を行う。
+
 // ============================================================
 // ビール銘柄定義（10種類）
 // ============================================================
+// 各銘柄の設定。name=表示名 / short=缶に印字する短縮名 / body=缶の色 / label=ラベル帯の色
+// text=文字色 / stripe=缶の縁の影色 / flag=缶の下部に出す絵文字
+// 銘柄の追加・変更はここ。1銘柄につき缶は1本ずつ配置される（小さい画面では8本）
 const BRANDS = [
   { name:'Heineken',  short:'HEINEKEN',  body:'#1a6b2a', label:'#22882f', text:'#fff',    stripe:'#15551f', flag:'🟢' },
   { name:'Asahi',     short:'ASAHI',     body:'#1c3a6e', label:'#1a4a8a', text:'#fff',    stripe:'#152d58', flag:'🔵' },
@@ -373,13 +429,19 @@ const BRANDS = [
 // ============================================================
 // レスポンシブ：画面サイズに応じてCanvasサイズを決める
 // ============================================================
+// 記憶タイム（ビールが見える時間）の秒数
 const MEMORIZE_TIME   = 3;
+// 最初にボタンを押してからの操作制限時間（秒）。超えると強制降下
 const OPERATION_LIMIT = 30;
+// クレーンの移動速度の基準値。難易度調整に使える（数字を大きくすると速くなる）
 const CRANE_SPEED_BASE = 110; // px/s (500px基準)
 
+// 以下は画面サイズに応じてresizeCanvas()が決める値
+// キャンバスの一辺 / 缶の幅・高さ / 当たり判定の半径 / クレーン半径 / クレーン速度 / 缶の本数 / 端の余白
 let CANVAS_SIZE, BEER_W, BEER_H, HIT_R, CRANE_R, CRANE_SPEED, BEER_COUNT, MARGIN;
 let scaleFactor = 1; // canvas内座標系の倍率
 
+// HTML要素の取得（以降の処理で使い回す）
 const canvas        = document.getElementById('gameCanvas');
 const ctx           = canvas.getContext('2d');
 const previewCanvas = document.getElementById('previewCanvas');
@@ -399,6 +461,8 @@ const canvasContainer = document.getElementById('canvas-container');
 // ============================================================
 // 画面サイズに合わせてCanvasと各定数をリサイズ
 // ============================================================
+// 画面サイズを見て、Canvasの大きさと缶・クレーンの大きさ・速度をまとめて再計算する。
+// 500pxを基準(scaleFactor=1)に、小さい画面ではすべて比例して縮小する。
 function resizeCanvas() {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
@@ -409,6 +473,7 @@ function resizeCanvas() {
   const maxFromH = vh - reservedH;
   const maxFromW = vw - 16; // 左右padding
 
+  // Canvasの一辺：最小260px、最大500px。縦横の空きが小さい方に合わせる
   CANVAS_SIZE = Math.max(260, Math.min(500, maxFromH, maxFromW));
   scaleFactor = CANVAS_SIZE / 500;
 
@@ -421,6 +486,7 @@ function resizeCanvas() {
   HIT_R       = Math.round(32  * scaleFactor);
   CRANE_R     = Math.round(18  * scaleFactor);
   CRANE_SPEED = CRANE_SPEED_BASE * scaleFactor;
+  // 小さいCanvas（340px未満）では混み合うので、缶を8本に減らす
   BEER_COUNT  = CANVAS_SIZE < 340 ? 8 : 10;
   MARGIN      = Math.round(55 * scaleFactor);
 
@@ -436,6 +502,15 @@ function resizeCanvas() {
   }
 }
 
+// ゲームの状態を管理する変数
+// beers: 画面上の缶の配列（{x, y, brand}） / targetBrand: 今回つかむべき銘柄 / crane: クレーンの現在位置
+// gameState: 'start' → 'memorize' → 'dark' → 'grabbing' → 'result'
+// memorizeTimer, opTimer: 記憶タイム・操作時間の残り秒数
+// opStarted: 最初のボタン押下で操作時間のカウントが始まったか
+// lastTime, animId: アニメーション用（前フレームの時刻 / requestAnimationFrameのID）
+// countdownVal: 表示中のカウントダウン数字
+// rightUsed, upUsed: 各ボタンを既に使ったか（1回限りの制御）
+// rightActive, upActive: 今ボタンを押している最中か（trueの間クレーンが動く）
 let beers = [];
 let targetBrand = null;
 let crane = { x:50, y:450 };
@@ -454,14 +529,18 @@ let upActive    = false;
 // ============================================================
 // ビールをランダム配置
 // ============================================================
+// ビールをランダムな位置に配置する。缶同士が重ならないよう最小距離を確保し、
+// 100回試して置けなければ妥協してそのまま配置する。銘柄はシャッフルして1本ずつ割り当てる。
 function generateBeers() {
   beers = [];
   const positions = [];
+  // 銘柄リストをランダムに並べ替える（簡易シャッフル）
   const shuffled = [...BRANDS].sort(() => Math.random() - 0.5);
   const minDist = (BEER_W + BEER_H) * 1.5; // 缶サイズ依存の最小距離
 
   for (let i = 0; i < BEER_COUNT; i++) {
     let pos, attempts = 0;
+    // 他の缶と近すぎる位置なら、座標を引き直す（最大100回）
     do {
       pos = {
         x: MARGIN + Math.random() * (CANVAS_SIZE - MARGIN * 2),
@@ -472,6 +551,7 @@ function generateBeers() {
       attempts < 100 &&
       positions.some(p => Math.hypot(p.x - pos.x, p.y - pos.y) < minDist)
     );
+    // 位置を記録して、缶のデータ（座標＋銘柄）を追加
     positions.push(pos);
     beers.push({ ...pos, brand: shuffled[i % shuffled.length] });
   }
@@ -480,6 +560,7 @@ function generateBeers() {
 // ============================================================
 // ターゲット銘柄をランダム選択
 // ============================================================
+// 実際に配置された銘柄の中からターゲットを1つ選び、名前表示とプレビュー缶を更新する
 function pickTarget() {
   const placed = [...new Set(beers.map(b => b.brand))];
   targetBrand = placed[Math.floor(Math.random() * placed.length)];
@@ -490,6 +571,9 @@ function pickTarget() {
 // ============================================================
 // 缶の汎用描画（context, brand, 中心x, 中心y, スケール, alpha）
 // ============================================================
+// 缶1本を描く共通関数。メインCanvas（等倍）とプレビューCanvas（拡大）の両方で使う。
+// c=描画先 / brand=銘柄 / cx,cy=中心座標 / scale=倍率 / alpha=透明度
+// 缶の中心を原点(0,0)に移動してから、本体 → ラベル → 文字 → 蓋 → プルタブ → 輪郭の順に重ねて描く。
 function _drawCan(c, brand, cx, cy, scale, alpha) {
   const bw = BEER_W * scale;
   const bh = BEER_H * scale;
@@ -560,6 +644,7 @@ function _drawCan(c, brand, cx, cy, scale, alpha) {
   c.restore();
 }
 
+// メインCanvasに缶を1本描く（_drawCanを呼ぶだけの簡易版）
 function drawBeer(b, alpha = 1) {
   _drawCan(ctx, b.brand, b.x, b.y, 1, alpha);
 }
@@ -601,6 +686,7 @@ function roundRect(c, x, y, w, h, r) {
   c.closePath();
 }
 
+// 色(#rrggbb)を明るくする。缶の上蓋の色に使用
 function lighten(hex, amt) {
   const n = parseInt(hex.replace('#',''), 16);
   const r = Math.min(255, (n>>16)        + Math.round(amt*128));
@@ -608,6 +694,7 @@ function lighten(hex, amt) {
   const b = Math.min(255, (n&0xff)       + Math.round(amt*128));
   return `rgb(${r},${g},${b})`;
 }
+// 色を暗くする。缶の下蓋の色に使用
 function darken(hex, amt) {
   const n = parseInt(hex.replace('#',''), 16);
   const r = Math.max(0, (n>>16)        - Math.round(amt*128));
@@ -619,6 +706,7 @@ function darken(hex, amt) {
 // ============================================================
 // クレーン描画
 // ============================================================
+// クレーンを描く：十字線＋外側の円＋中心の白点。この円の位置が、結果判定でのクレーン位置になる
 function drawCrane() {
   const { x, y } = crane;
   const arm = Math.round(22 * scaleFactor);
@@ -644,6 +732,7 @@ function drawCrane() {
 }
 
 // グリッド描画
+// alphaは線の濃さ（暗転中は薄く表示）。50px（×scaleFactor）間隔の方眼を引く
 function drawGrid(alpha) {
   const step = Math.round(50 * scaleFactor);
   ctx.save();
@@ -662,10 +751,13 @@ function drawGrid(alpha) {
 // ============================================================
 // メイン描画
 // ============================================================
+// 現在のgameStateに応じて画面を描き分ける
+// memorize=缶とクレーン / dark・grabbing=真っ暗でクレーンだけ / result=缶を半透明で表示しターゲットだけ強調
 function draw() {
   ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
   if (gameState === 'memorize') {
+    // 記憶タイム：缶がすべて見える
     ctx.fillStyle = '#1a1825';
     ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
     drawGrid(1);
@@ -673,12 +765,14 @@ function draw() {
     drawCrane();
 
   } else if (gameState === 'dark' || gameState === 'grabbing') {
+    // 暗転：缶は描かない（位置は記憶頼り）
     ctx.fillStyle = '#050408';
     ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
     drawGrid(0.3);
     drawCrane();
 
   } else if (gameState === 'result') {
+    // 結果：缶を半透明で全表示し、ターゲット銘柄だけ緑の輪で囲んでくっきり表示
     ctx.fillStyle = '#0d0c14';
     ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
     drawGrid(0.5);
@@ -697,12 +791,14 @@ function draw() {
   }
 }
 
+// 残り時間バーの幅と色を更新する。ratio=残り割合(0〜1)。満タンは黄緑寄り、減ると赤に近づく
 function updateTimerBar(ratio) {
   timerFill.style.width = (ratio*100) + '%';
   const hue = ratio * 60;
   timerFill.style.background = `linear-gradient(90deg, hsl(${hue},90%,50%), hsl(${hue+30},90%,60%))`;
 }
 
+// カウントダウン数字（3,2,1）を表示し、0.7秒後にフェードアウトさせる
 function showCountdown(n) {
   countdownNum.textContent = n;
   countdownNum.classList.add('show');
@@ -713,12 +809,16 @@ function showCountdown(n) {
 // ============================================================
 // ゲームループ
 // ============================================================
+// 毎フレーム呼ばれるメインループ（requestAnimationFrameで繰り返し予約される）。
+// 前フレームからの経過時間dtを計算し、gameStateごとの処理をしてから画面を描画する。
 function gameLoop(ts) {
   if (!lastTime) lastTime = ts;
+  // dt=前フレームからの経過秒。タブ切替などで極端に大きくならないよう最大0.1秒に制限
   const dt = Math.min((ts - lastTime) / 1000, 0.1);
   lastTime = ts;
 
   if (gameState === 'memorize') {
+    // 【記憶タイム】残り秒数を減らし、整数部分が変わるたびにカウントダウン数字を表示
     memorizeTimer -= dt;
     const sec = Math.ceil(memorizeTimer);
     if (sec !== countdownVal) {
@@ -727,6 +827,7 @@ function gameLoop(ts) {
     }
     timerLabel.textContent = `記憶タイム: ${Math.max(0, memorizeTimer).toFixed(1)}s`;
     updateTimerBar(memorizeTimer / MEMORIZE_TIME);
+    // 記憶タイム終了 → 暗転(dark)へ移行。ここからボタン操作が有効になる
     if (memorizeTimer <= 0) {
       countdownNum.classList.remove('show');
       memorizeLabel.classList.remove('show');
@@ -736,24 +837,30 @@ function gameLoop(ts) {
     }
 
   } else if (gameState === 'dark') {
+    // 【暗転】ボタンを押している間だけクレーンが移動する（右 / 上）。画面端の手前で止まる
     if (rightActive && crane.x < CANVAS_SIZE - MARGIN/2) crane.x += CRANE_SPEED * dt;
     if (upActive    && crane.y > MARGIN/2)               crane.y -= CRANE_SPEED * dt;
 
+    // どちらかのボタンを最初に押した瞬間から、操作時間のカウントダウンを開始する
     if ((rightActive || upActive) && !opStarted) opStarted = true;
 
+    // 操作時間を減らして表示。0になったら強制的にクレーン降下
     if (opStarted) {
       opTimer -= dt;
       timerLabel.textContent = `残り操作時間: ${Math.max(0, opTimer).toFixed(1)}s`;
       updateTimerBar(opTimer / OPERATION_LIMIT);
       if (opTimer <= 0) { startGrab(); return; }
     }
+    // 両方のボタンを使い切り、かつ指を離したら自動でクレーン降下
     if (rightUsed && upUsed && !rightActive && !upActive) { startGrab(); return; }
   }
 
+  // 画面を描画して、次のフレームを予約する（降下開始時は上のreturnでループを抜ける）
   draw();
   animId = requestAnimationFrame(gameLoop);
 }
 
+// クレーン降下の開始。ボタン入力を止め、0.7秒の演出のあと判定(judgeResult)へ進む
 function startGrab() {
   gameState = 'grabbing';
   rightActive = upActive = false;
@@ -762,6 +869,8 @@ function startGrab() {
   setTimeout(judgeResult, 700);
 }
 
+// 結果判定。クレーン位置がターゲット銘柄の缶の近く（クレーン半径＋判定半径の範囲内）にあればCLEAR。
+// ターゲット以外の銘柄の缶は判定の対象外。
 function judgeResult() {
   gameState = 'result';
   cancelAnimationFrame(animId);
@@ -779,6 +888,7 @@ function judgeResult() {
     resultText.className   = 'result-text gameover';
     resultSub.textContent  = `${targetBrand.name} には届かなかった…`;
   }
+  // 結果の文字を少し遅らせて表示する（CSSのアニメーションを発動させる）
   setTimeout(() => {
     resultText.classList.add('visible');
     resultSub.classList.add('visible');
@@ -790,6 +900,8 @@ function judgeResult() {
 // ============================================================
 // ゲーム初期化
 // ============================================================
+// ゲーム開始・リトライ時の初期化。状態・タイマー・表示をリセットし、
+// 缶を配置してターゲットを決め、ゲームループを開始する。
 function initGame() {
   cancelAnimationFrame(animId);
   lastTime = null;
@@ -797,10 +909,12 @@ function initGame() {
   // リサイズしてから座標を決める
   resizeCanvas();
 
+  // クレーンを左下の初期位置に戻す
   crane = {
     x: Math.round(50  * scaleFactor),
     y: Math.round(450 * scaleFactor),
   };
+  // 記憶タイムから開始
   gameState     = 'memorize';
   memorizeTimer = MEMORIZE_TIME;
   opTimer       = OPERATION_LIMIT;
@@ -822,6 +936,7 @@ function initGame() {
   countdownNum.classList.add('show');
   memorizeLabel.classList.add('show');
 
+  // 缶を配置 → ターゲット決定の順（ターゲットは配置済みの缶から選ぶため）
   generateBeers();
   pickTarget();
 
@@ -831,11 +946,14 @@ function initGame() {
 // ============================================================
 // ボタン操作（RIGHT）
 // ============================================================
+// ボタンを押した瞬間の処理。暗転中のみ有効で、一度使ったら再度は押せない（rightUsed）。
+// 押している間rightActiveがtrueになり、実際の移動はgameLoop側で行われる。
 function pressRight() {
   if (gameState !== 'dark' || rightUsed) return;
   rightUsed = true; rightActive = true;
   btnRight.classList.add('flash');
 }
+// ボタンを離した時の処理。移動を止め、ボタンを「使用済み」の見た目にする
 function releaseRight() {
   if (!rightActive) return;
   rightActive = false;
@@ -846,11 +964,13 @@ function releaseRight() {
 // ============================================================
 // ボタン操作（UP）
 // ============================================================
+// RIGHTと同じ仕組みで、こちらは上方向へ移動
 function pressUp() {
   if (gameState !== 'dark' || upUsed) return;
   upUsed = true; upActive = true;
   btnUp.classList.add('flash');
 }
+// UPボタンを離した時の処理（RIGHTと同様）
 function releaseUp() {
   if (!upActive) return;
   upActive = false;
@@ -875,6 +995,7 @@ btnUp.addEventListener('touchend',      e => { e.preventDefault(); releaseUp(); 
 btnUp.addEventListener('touchcancel',   e => { e.preventDefault(); releaseUp();   }, { passive:false });
 
 // キーボード
+// → / D キーがRIGHT、↑ / W キーがUPに対応。e.repeatで押しっぱなしによる連続発火は無視
 document.addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.key === 'ArrowRight' || e.key === 'd') pressRight();
@@ -885,12 +1006,16 @@ document.addEventListener('keyup', e => {
   if (e.key === 'ArrowUp'    || e.key === 'w') releaseUp();
 });
 
+// 「もう一度遊ぶ」を押したら初期化からやり直し
 retryBtn.addEventListener('click', initGame);
 
 // ============================================================
 // ウィンドウリサイズ対応（画面回転含む）
 // ============================================================
 let resizeTimer;
+// リサイズが連続しても負荷が増えないよう、200ms待ってから処理する（デバウンス）。
+// gameStateが'start'になるのはゲーム開始前だけなので、実質スタート画面表示中のみ反映される。
+// （リトライ時はinitGame内のresizeCanvasで再計算される）
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
@@ -905,6 +1030,7 @@ window.addEventListener('resize', () => {
 // ============================================================
 // スタートボタン
 // ============================================================
+// GAME START：スタート画面を0.4秒でフェードアウトして消し、ゲームを開始する
 document.getElementById('start-btn').addEventListener('click', () => {
   startScreen.style.transition = 'opacity 0.4s';
   startScreen.style.opacity    = '0';
